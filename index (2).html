@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood to Songs Suggester 🎶</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      transition: background 0.6s ease, color 0.6s ease;
+      overflow-x: hidden;
+    }
+
+    /* Splash Screen */
+    .splash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      animation: fadeOut 2s ease forwards;
+      animation-delay: 3s;
+    }
+    .splash h1 { font-size: 2rem; margin-bottom: 10px; }
+    .splash .team { margin-top: 10px; font-size: 1rem; color: #ffd369; }
+    @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+
+    /* Default Background */
+    body.default-bg { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+    /* Light Mode */
+    body.light-mode { background: #fefefe; color: #111; }
+
+    /* Mood-based Backgrounds */
+    body.sad-bg { background: #1e3c72; }
+    body.happy-bg { background: #e0ffe0; }
+    body.excited-bg { background: #ff512f; }
+    body.stressed-bg { background: #0a0a23; }
+    body.relaxed-bg { background: linear-gradient(#fceabb, #f8b500); }
+
+    /* Effects Layer */
+    .effect { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+    /* Rain */
+    .raindrop { position: absolute; width: 2px; height: 20px; background: rgba(255,255,255,0.6); animation: rain 1s linear infinite; }
+    @keyframes rain { 0% { transform: translateY(-20px); opacity: 1; } 100% { transform: translateY(100vh); opacity: 0; } }
+
+    /* Fire sparks */
+    .spark { position: absolute; width: 4px; height: 4px; background: orange; border-radius: 50%; animation: fire 1s linear infinite; }
+    @keyframes fire { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(0.5); opacity: 0; } }
+
+    /* Sunshine */
+    .sun { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); width: 120px; height: 120px; background: yellow; border-radius: 50%; box-shadow: 0 0 60px rgba(255,255,0,0.6); animation: pulse 3s infinite alternate; }
+    @keyframes pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.1); } }
+
+    /* Lamp */
+    .lamp { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 120px; background: #333; border-radius: 10px; }
+    .lamp-light { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; background: rgba(255,255,200,0.3); border-radius: 50%; filter: blur(20px); }
+
+    /* Logos */
+    .logo { margin-top: 20px; margin-bottom: 10px; text-align: center; display: flex; justify-content: center; align-items: center; gap: 20px; }
+    .logo img { width: 120px; height: auto; }
+
+    /* Welcome */
+    .welcome {
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 15px 25px;
+      border-radius: 12px;
+      margin: 15px auto;
+      font-size: 1.1rem;
+      text-align: center;
+      width: fit-content;
+      position: relative;
+      z-index: 1;
+    }
+    .welcome .team { margin-top: 5px; font-size: 0.95rem; color: #ffd369; }
+
+    /* Section Separator */
+    .separator {
+      text-align: center;
+      margin: 40px 0 20px 0;
+      font-size: 1.5rem;
+      color: #ffd369;
+    }
+
+    /* Dark/Light Mode Button */
+    .mode-toggle {
+      margin: 15px auto;
+      display: block;
+      padding: 10px 15px;
+      border-radius: 10px;
+      background: #333;
+      color: #fff;
+      z-index: 1;
+    }
+    body.light-mode .mode-toggle { background: #ddd; color: #000; }
+
+    /* Container */
+    .container {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%; max-width: 600px;
+      text-align: center;
+      margin: auto;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
+    }
+    h1 {
+      font-size: 2.2rem; margin-bottom: 10px;
+      background: linear-gradient(90deg, #ff9a9e, #fad390);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: glow 2s infinite alternate;
+    }
+    @keyframes glow { from { text-shadow: 0 0 10px #fff; } to { text-shadow: 0 0 20px #ff9a9e; } }
+
+    select, button, input, textarea {
+      padding: 12px; border-radius: 12px; border: none; font-size: 1rem; margin: 10px 0;
+    }
+    select, input, textarea { width: 100%; background: rgba(255,255,255,0.9); color: #333; }
+    button {
+      background: linear-gradient(135deg, #43cea2, #185a9d);
+      color: #fff; font-weight: bold; cursor: pointer; transition: transform 0.3s;
+    }
+    button:hover { transform: scale(1.05); }
+
+    /* Player */
+    .player { margin-top: 25px; }
+    .song-box {
+      background: rgba(255,255,255,0.15);
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .song-title { font-size: 1.2rem; margin-bottom: 10px; font-weight: bold; }
+    audio { width: 100%; }
+
+    .waves { display: flex; justify-content: center; align-items: flex-end; height: 40px; margin-top: 15px; gap: 4px; }
+    .wave { width: 6px; background: #fff; border-radius: 3px; animation: waveAnim 1s infinite ease-in-out; }
+    .wave:nth-child(1) { animation-delay: 0s; }
+    .wave:nth-child(2) { animation-delay: 0.2s; }
+    .wave:nth-child(3) { animation-delay: 0.4s; }
+    .wave:nth-child(4) { animation-delay: 0.6s; }
+    .wave:nth-child(5) { animation-delay: 0.8s; }
+    @keyframes waveAnim { 0%,100% { height: 10px; } 50% { height: 35px; } }
+    .hidden { display: none; }
+
+    /* Feedback Form */
+    .feedback { margin-top: 30px; text-align: left; }
+    .feedback h2 { margin-bottom: 10px; font-size: 1.2rem; }
+    .feedback textarea { height: 80px; resize: none; }
+
+    /* FAQ Section */
+    .faq { max-width: 600px; margin: 30px auto; text-align: left; }
+    .faq h2 { text-align: center; margin-bottom: 15px; }
+    .faq-item { margin-bottom: 15px; }
+    .faq-item h3 { font-size: 1rem; margin-bottom: 5px; color: #ffd369; }
+    .faq-item p { font-size: 0.95rem; margin: 0; }
+
+    /* Footer */
+    footer {
+      margin: 20px 0; font-size: 0.9rem; text-align: center;
+      position: relative; z-index: 1; color: #fff;
+      animation: footerGlow 2s infinite alternate;
+    }
+    footer strong { color: #ffd369; }
+    @keyframes footerGlow { from { text-shadow: 0 0 10px #fff; } to { text-shadow: 0 0 20px #ffd369; } }
+
+    /* Camera Section */
+    .camera-container {
+      margin: 20px 0;
+      text-align: center;
+    }
+    #cameraVideo, #cameraCanvas {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 12px;
+      background: #000;
+    }
+    .camera-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .camera-buttons button {
+      padding: 8px 15px;
+      font-size: 0.9rem;
+    }
+    .detected-mood {
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body class="default-bg">
+  <!-- Splash Screen -->
+  <div class="splash">
+    <h1>✨ Welcome to our website ✨</h1>
+    <p>By <strong>Knowledge Navigators</strong></p>
+    <div class="team">Team Members: Rupesh Pavan, Deva, Shlok, Ashok, Krishang</div>
+  </div>
+
+  <!-- Effects container -->
+  <div id="effect" class="effect"></div>
+
+  <!-- Logos -->
+  <div class="logo">
+    <img src="png.png" alt="KV Logo">
+    <img src="pm.png" alt="PM Logo">
+  </div>
+
+  <!-- Welcome -->
+  <div class="welcome">
+    🌟 Mood to Songs Suggester 🌟
+    <div class="team">Team Members: Rupesh Pavan, Deva, Shlok, Ashok, Krishang</div>
+  </div>
+
+  <!-- Dark/Light Toggle -->
+  <button class="mode-toggle" onclick="toggleMode()">Toggle Dark/Light Mode</button>
+
+  <!-- Separator -->
+  <div class="separator">────────── 🌐 Language ──────────</div>
+
+  <!-- Language Selector -->
+  <div class="container">
+    <p>Select your preferred language:</p>
+    <select id="language">
+      <option value="Hindi" selected>Hindi</option>
+      <option value="English">English</option>
+      <option value="Telugu">Telugu</option>
+      <option value="Tamil">Tamil</option>
+      <option value="Bengali">Bengali</option>
+      <option value="Marathi">Marathi</option>
+    </select>
+  </div>
+
+  <!-- Separator -->
+  <div class="separator">────────── 📷 Camera Mood Detection ──────────</div>
+
+  <!-- Camera Mood Detection -->
+  <div class="container">
+    <h2>Detect Your Mood with Camera</h2>
+    <p>Allow camera access to detect your mood from facial expressions</p>
+    
+    <div class="camera-container">
+      <video id="cameraVideo" autoplay playsinline></video>
+      <canvas id="cameraCanvas" class="hidden"></canvas>
+      
+      <div class="camera-buttons">
+        <button id="startCamera" onclick="startCamera()">Start Camera</button>
+        <button id="captureMood" onclick="captureMood()" disabled>Detect Mood</button>
+        <button id="stopCamera" onclick="stopCamera()" disabled>Stop Camera</button>
+      </div>
+      
+      <div id="detectedMood" class="detected-mood hidden">
+        Detected Mood: <span id="moodResult">None</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Separator -->
+  <div class="separator">────────── 🎶 ──────────</div>
+
+  <!-- Main App -->
+  <div class="container">
+    <h1>Mood to Songs Suggester 🎶</h1>
+    <p>Select your mood and enjoy your music with animations.</p>
+
+    <select id="mood">
+      <option value="">-- Choose a mood --</option>
+      <option value="Happy">Happy</option>
+      <option value="Sad">Sad</option>
+      <option value="Stressed">Stressed</option>
+      <option value="Relaxed">Relaxed</option>
+      <option value="Excited">Excited</option>
+    </select>
+    <br>
+    <button onclick="getPlaylist()">Play Songs</button>
+
+    <div id="player" class="player"></div>
+
+    <!-- Feedback Form -->
+    <div class="feedback">
+      <h2>💡 Feedback</h2>
+      <p>How do you feel after listening?</p>
+      <textarea id="feedbackText" placeholder="Write your feedback here..."></textarea>
+      <button onclick="submitFeedback()">Submit</button>
+      <p id="feedbackMessage"></p>
+    </div>
+  </div>
+
+  <!-- Separator -->
+  <div class="separator">────────── ❓ ──────────</div>
+
+  <!-- FAQ Section -->
+  <div class="faq">
+    <h2>❓ Frequently Asked Questions</h2>
+    <div class="faq-item">
+      <h3>What is this project?</h3>
+      <p>This is a mood-based song suggester that plays songs depending on your mood.</p>
+    </div>
+    <div class="faq-item">
+      <h3>How does it suggest songs?</h3>
+      <p>You select your mood, and it loads a playlist with matching songs and background animations.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Why did we build this?</h3>
+      <p>To create a fun, interactive way to connect music with emotions for our hackathon challenge.</p>
+    </div>
+    <div class="faq-item">
+      <h3>How does the camera mood detection work?</h3>
+      <p>The camera analyzes facial expressions to detect emotions. For demonstration, we're using a simulated detection, but in a real implementation, this would use AI/ML models.</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    Made by <strong>PM SHRI KENDRIYA VIDYALAYA MALKAPURAM - H1534SR1</strong><br>
+    &copy; 2025 Knowledge Navigators. All Rights Reserved.
+  </footer>
+
+  <script>
+    const playlists = {
+      Hindi: {
+        Happy: [
+          { name: "Hindi Happy Song 1", file: "songs/hindi/happy1.mp3" },
+          { name: "Hindi Happy Song 2", file: "songs/hindi/happy2.mp3" }
+        ],
+        Sad: [
+          { name: "Hindi Sad Song 1", file: "songs/hindi/sad1.mp3" },
+          { name: "Hindi Sad Song 2", file: "songs/hindi/sad2.mp3" }
+        ],
+        Stressed: [
+          { name: "Hindi Stress Relief 1", file: "songs/hindi/stressed1.mp3" },
+          { name: "Hindi Stress Relief 2", file: "songs/hindi/stressed2.mp3" }
+        ],
+        Relaxed: [
+          { name: "Hindi Relaxing Track 1", file: "songs/hindi/relaxed1.mp3" },
+          { name: "Hindi Relaxing Track 2", file: "songs/hindi/relaxed2.mp3" }
+        ],
+        Excited: [
+          { name: "Hindi Excited Song 1", file: "songs/hindi/excited1.mp3" },
+          { name: "Hindi Excited Song 2", file: "songs/hindi/excited2.mp3" }
+        ]
+      },
+      English: {
+        Happy: [
+          { name: "English Happy Song 1", file: "songs/english/happy1.mp3" },
+          { name: "English Happy Song 2", file: "songs/english/happy2.mp3" }
+        ],
+        Sad: [
+          { name: "English Sad Song 1", file: "songs/english/sad1.mp3" },
+          { name: "English Sad Song 2", file: "songs/english/sad2.mp3" }
+        ],
+        Stressed: [
+          { name: "English Stress Relief 1", file: "songs/english/stressed1.mp3" },
+          { name: "English Stress Relief 2", file: "songs/english/stressed2.mp3" }
+        ],
+        Relaxed: [
+          { name: "English Relaxing Track 1", file: "songs/english/relaxed1.mp3" },
+          { name: "English Relaxing Track 2", file: "songs/english/relaxed2.mp3" }
+        ],
+        Excited: [
+          { name: "English Excited Song 1", file: "songs/english/excited1.mp3" },
+          { name: "English Excited Song 2", file: "songs/english/excited2.mp3" }
+        ]
+      },
+      Bengali: {
+        Happy: [
+          { name: "Bengali Happy Song 1", file: "songs/Bengali/happy1.mp3" },
+          { name: "Bengali Happy Song 2", file: "songs/Bengali/happy2.mp3" }
+        ],
+        Sad: [
+          { name: "Bengali Sad Song 1", file: "songs/Bengali/sad1.mp3" },
+          { name: "Bengali Sad Song 2", file: "songs/Bengali/sad2.mp3" }
+        ],
+        Stressed: [
+          { name: "Bengali Relief 1", file: "songs/Bengali/stressed1.mp3" },
+          { name: "Bengali Relief 2", file: "songs/Bengali/stressed2.mp3" }
+        ],
+        Relaxed: [
+          { name: "Bengali Relaxing Track 1", file: "songs/Bengali/relaxed1.mp3" },
+          { name: "Bengali Relaxing Track 2", file: "songs/Bengali/relaxed2.mp3" }
+        ],
+        Excited: [
+          { name: "Bengali Excited Song 1", file: "songs/Bengali/excited1.mp3" },
+          { name: "Bengali Excited Song 2", file: "songs/Bengali/excited2.mp3" }
+        ]
+      },
+      Telugu: {
+        Happy: [
+          { name: "Telugu Happy Song 1", file: "songs/telugu/happy1.mp3" },
+          { name: "Telugu Happy Song 2", file: "songs/telugu/happy2.mp3" }
+        ],
+        Sad: [
+          { name: "Telugu Sad Song 1", file: "songs/telugu/sad1.mp3" },
+          { name: "Telugu Sad Song 2", file: "songs/telugu/sad2.mp3" }
+        ],
+        Stressed: [
+          { name: "Telugu Stress Relief 1", file: "songs/telugu/stressed1.mp3" },
+          { name: "Telugu Stress Relief 2", file: "songs/telugu/stressed2.mp3" }
+        ],
+        Relaxed: [
+          { name: "Telugu Relaxing Track 1", file: "songs/telugu/relaxed1.mp3" },
+          { name: "Telugu Relaxing Track 2", file: "songs/telugu/relaxed2.mp3" }
+        ],
+        Excited: [
+          { name: "Telugu Excited Song 1", file: "songs/telugu/excited1.mp3" },
+          { name: "Telugu Excited Song 2", file: "songs/telugu/excited2.mp3" }
+        ]
+      }
+    };
+
+    // Camera variables
+    let stream = null;
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Start camera
+    function startCamera() {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(function(mediaStream) {
+            stream = mediaStream;
+            video.srcObject = mediaStream;
+            video.play();
+            
+            // Enable buttons
+            document.getElementById('captureMood').disabled = false;
+            document.getElementById('stopCamera').disabled = false;
+            document.getElementById('startCamera').disabled = true;
+          })
+          .catch(function(error) {
+            console.error("Camera error: ", error);
+            alert("Unable to access camera: " + error.message);
+          });
+      } else {
+        alert("Your browser doesn't support camera access.");
+      }
+    }
+
+    // Stop camera
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        
+        // Reset buttons
+        document.getElementById('captureMood').disabled = true;
+        document.getElementById('stopCamera').disabled = true;
+        document.getElementById('startCamera').disabled = false;
+        
+        // Hide detection result
+        document.getElementById('detectedMood').classList.add('hidden');
+      }
+    }
+
+    // Capture mood from camera (simulated)
+    function captureMood() {
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw current video frame to canvas
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // In a real implementation, we would send this image to an emotion detection API
+      // For this demo, we'll simulate detection with random results
+      const moods = ['Happy', 'Sad', 'Excited', 'Relaxed', 'Stressed'];
+      const detectedMood = moods[Math.floor(Math.random() * moods.length)];
+      
+      // Display the result
+      document.getElementById('moodResult').textContent = detectedMood;
+      document.getElementById('detectedMood').classList.remove('hidden');
+      
+      // Also set the mood in the dropdown
+      document.getElementById('mood').value = detectedMood;
+      
+      // Show appropriate message
+      alert(`Detected mood: ${detectedMood}. The mood has been selected in the dropdown. Click "Play Songs" to get recommendations.`);
+    }
+
+    function getPlaylist() {
+      const lang = document.getElementById("language").value;
+      const mood = document.getElementById("mood").value;
+      const player = document.getElementById("player");
+      const effect = document.getElementById("effect");
+
+      player.innerHTML = "";
+      effect.innerHTML = "";
+
+      if (!lang || !mood || !playlists[lang][mood]) {
+        player.innerHTML = "<p>Please select both language and mood.</p>";
+        return;
+      }
+
+      // Background & Effects
+      document.body.className = `${mood.toLowerCase()}-bg`;
+      if (mood === "Sad") {
+        for (let i = 0; i < 20; i++) {
+          const drop = document.createElement("div");
+          drop.className = "raindrop";
+          drop.style.left = `${Math.random() * 100}vw`;
+          drop.style.animationDuration = `${0.5 + Math.random()}s`;
+          effect.appendChild(drop);
+        }
+      } else if (mood === "Excited") {
+        for (let i = 0; i < 20; i++) {
+          const spark = document.createElement("div");
+          spark.className = "spark";
+          spark.style.left = `${Math.random() * 100}vw`;
+          spark.style.top = `${Math.random() * 100}vh`;
+          spark.style.animationDuration = `${0.5 + Math.random()}s`;
+          effect.appendChild(spark);
+        }
+      } else if (mood === "Relaxed") {
+        const sun = document.createElement("div");
+        sun.className = "sun";
+        effect.appendChild(sun);
+      } else if (mood === "Stressed") {
+        const lamp = document.createElement("div");
+        lamp.className = "lamp";
+        const light = document.createElement("div");
+        light.className = "lamp-light";
+        lamp.appendChild(light);
+        effect.appendChild(lamp);
+      }
+
+      // Songs
+      playlists[lang][mood].forEach((song, index) => {
+        const box = document.createElement("div");
+        box.className = "song-box";
+        const title = document.createElement("div");
+        title.className = "song-title";
+        title.textContent = song.name;
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = song.file;
+        audio.id = `audio-${lang}-${mood}-${index}`;
+
+        // Waves
+        const waves = document.createElement("div");
+        waves.className = "waves hidden";
+        for (let i = 0; i < 5; i++) {
+          const wave = document.createElement("div");
+          wave.className = "wave";
+          waves.appendChild(wave);
+        }
+
+        // Audio Events
+        audio.addEventListener("play", () => {
+          document.querySelectorAll("audio").forEach(a => { if (a !== audio) a.pause(); });
+          document.querySelectorAll(".waves").forEach(w => w.classList.add("hidden"));
+          waves.classList.remove("hidden");
+        });
+        audio.addEventListener("pause", () => { waves.classList.add("hidden"); });
+        audio.addEventListener("ended", () => { waves.classList.add("hidden"); });
+
+        box.appendChild(title);
+        box.appendChild(audio);
+        box.appendChild(waves);
+        player.appendChild(box);
+      });
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle("light-mode");
+    }
+
+    function submitFeedback() {
+      const feedback = document.getElementById("feedbackText").value;
+      const msg = document.getElementById("feedbackMessage");
+      if (feedback.trim() === "") {
+        msg.textContent = "⚠️ Please enter some feedback before submitting.";
+        msg.style.color = "red";
+      } else {
+        msg.textContent = "✅ Thank you for your feedback!";
+        msg.style.color = "limegreen";
+        document.getElementById("feedbackText").value = "";
+      }
+    }
+  </script>
+</body>
+</html>
